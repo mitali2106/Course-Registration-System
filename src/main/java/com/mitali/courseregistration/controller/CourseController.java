@@ -1,5 +1,6 @@
 package com.mitali.courseregistration.controller;
 
+import java.time.DayOfWeek;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import com.mitali.courseregistration.model.Slot;
 import com.mitali.courseregistration.repository.CourseRepository;
 import com.mitali.courseregistration.repository.RegistrationRepository;
 import com.mitali.courseregistration.repository.SlotRepository;
+import com.mitali.courseregistration.repository.SlotTimingRepository;
 import com.mitali.courseregistration.service.NotFoundException;
 
 import jakarta.validation.Valid;
@@ -29,19 +31,24 @@ public class CourseController {
             @Min(1) int capacity, @NotBlank String slotCode) {
     }
 
+    public record TimingView(DayOfWeek day, int period) {
+    }
+
     public record CourseView(Long id, String code, String title, int credits, int capacity, String slot,
-            long seatsLeft) {
+            long seatsLeft, List<TimingView> timings) {
     }
 
     private final CourseRepository courses;
     private final SlotRepository slots;
     private final RegistrationRepository registrations;
+    private final SlotTimingRepository timings;
 
     public CourseController(CourseRepository courses, SlotRepository slots,
-            RegistrationRepository registrations) {
+            RegistrationRepository registrations, SlotTimingRepository timings) {
         this.courses = courses;
         this.slots = slots;
         this.registrations = registrations;
+        this.timings = timings;
     }
 
     @PostMapping
@@ -61,7 +68,10 @@ public class CourseController {
 
     private CourseView toView(Course course) {
         long seatsLeft = course.getCapacity() - registrations.countByCourse(course);
+        List<TimingView> courseTimings = timings.findBySlot(course.getSlot()).stream()
+                .map(t -> new TimingView(t.getDayOfWeek(), t.getPeriodNo()))
+                .toList();
         return new CourseView(course.getId(), course.getCode(), course.getTitle(), course.getCredits(),
-                course.getCapacity(), course.getSlot().getCode(), seatsLeft);
+                course.getCapacity(), course.getSlot().getCode(), seatsLeft, courseTimings);
     }
 }

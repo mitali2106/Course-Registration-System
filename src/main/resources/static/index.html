@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Course Registration</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #f2f4f1; --sheet: #ffffff; --ink: #16302b; --ink-soft: #5b6b66; --rule: #dde3df;
+    --go: #1f6f5c; --stop: #b3261e; --stop-wash: #fbeceb; --go-wash: #e6f2ee;
+    --c1: #cfe3d9; --c2: #f3dca8; --c3: #d7daf3; --c4: #f2d2ca; --c5: #d9ecf2; --c6: #e8d9f0;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 "IBM Plex Sans", system-ui, sans-serif; }
+  .offline { display: none; text-align: center; font-size: 14px; padding: 8px 16px; background: var(--stop-wash); color: var(--stop); }
+  .offline.show { display: block; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+
+  header { padding: 28px 0 20px; display: flex; flex-wrap: wrap; gap: 20px 32px; align-items: end; justify-content: space-between; }
+  .who label { display: block; font-size: 13px; color: var(--ink-soft); margin-bottom: 4px; }
+  .who select {
+    font: 700 clamp(26px, 4vw, 40px)/1.1 "Bricolage Grotesque", sans-serif; color: var(--ink);
+    border: 0; background: transparent; padding: 0 28px 0 0; margin-left: -2px; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+    background-position: right 8px top 58%, right 2px top 58%; background-size: 6px 6px; background-repeat: no-repeat;
+  }
+  .who p { margin: 4px 0 0; color: var(--ink-soft); }
+  .credits { min-width: 260px; }
+  .credits-head { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+  .credits-head strong { font: 700 22px/1 "Bricolage Grotesque", sans-serif; }
+  .pips { display: flex; flex-wrap: wrap; gap: 4px; }
+  .pip { width: 14px; height: 14px; border-radius: 3px; border: 1.5px solid var(--ink); }
+  .pip.on { background: var(--ink); }
+
+  main { display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: 24px; padding-bottom: 40px; align-items: start; }
+  h2 { font: 700 18px/1.3 "Bricolage Grotesque", sans-serif; margin: 0 0 4px; }
+  .hint { margin: 0 0 14px; color: var(--ink-soft); font-size: 14px; }
+  .catalog, .board { background: var(--sheet); border-radius: 14px; padding: 20px; }
+  .board { overflow-x: auto; }
+
+  .course { border-top: 1px solid var(--rule); padding: 14px 0; }
+  .course:first-of-type { border-top: 0; padding-top: 4px; }
+  .row { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+  .slot { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; font: 700 15px/1 "Bricolage Grotesque", sans-serif; }
+  .title { font-weight: 600; }
+  .meta { font-size: 13px; color: var(--ink-soft); }
+  .meta .full { color: var(--stop); font-weight: 600; }
+  .btn { font: 600 14px/1 "IBM Plex Sans", sans-serif; padding: 10px 14px; border-radius: 8px; cursor: pointer; border: 1.5px solid var(--ink); background: var(--ink); color: #fff; }
+  .btn:hover { background: #0e211d; }
+  .btn.quiet { background: transparent; color: var(--ink); }
+  .btn.quiet:hover { background: var(--paper); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  :focus-visible { outline: 3px solid #e2a93b; outline-offset: 2px; }
+  .result { margin-top: 10px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+  .result.bad { background: var(--stop-wash); color: var(--stop); }
+  .result.ok { background: var(--go-wash); color: var(--go); }
+  .result strong { display: block; }
+
+  .grid { display: grid; grid-template-columns: 56px repeat(4, minmax(120px, 1fr)); gap: 6px; min-width: 560px; }
+  .grid .head { font-size: 13px; color: var(--ink-soft); padding: 0 4px 2px; }
+  .grid .day { font: 700 15px/1 "Bricolage Grotesque", sans-serif; align-self: center; }
+  .cell { min-height: 74px; border-radius: 10px; background: var(--paper); padding: 10px; position: relative; transition: box-shadow .15s ease; }
+  .cell.busy strong { display: block; font-weight: 600; }
+  .cell.busy span { font-size: 13px; color: var(--ink-soft); }
+  .cell.peek { box-shadow: inset 0 0 0 2px var(--ink); }
+  .cell.peek.clash { box-shadow: inset 0 0 0 2px var(--stop); }
+  .cell.peek.clash::after { content: "Clash"; position: absolute; right: 8px; bottom: 8px; font-size: 12px; font-weight: 600; color: var(--stop); }
+  .cell.flash { animation: flash .9s ease; }
+  @keyframes flash { from { box-shadow: inset 0 0 0 3px var(--go); } to { box-shadow: inset 0 0 0 0 transparent; } }
+
+  .taken { margin-top: 20px; border-top: 1px solid var(--rule); padding-top: 16px; }
+  .taken ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+  .taken li { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; }
+  .empty { color: var(--ink-soft); font-size: 14px; }
+  .empty.block { display: block; }
+
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .cell, .cell.flash { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<div class="offline" id="offline" role="alert">Can't reach the server. Check that the app is running, then this page will reconnect on its own.</div>
+
+<div class="wrap">
+  <header>
+    <div class="who">
+      <label for="student">Timetable for</label>
+      <select id="student"></select>
+      <p id="regNo"></p>
+    </div>
+    <div class="credits" aria-live="polite">
+      <div class="credits-head"><span>Credits used</span><span><strong id="used">0</strong> of <span id="max">0</span></span></div>
+      <div class="pips" id="pips"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="catalog" aria-labelledby="catalog-h">
+      <h2 id="catalog-h">Courses</h2>
+      <p class="hint">Hover a course to see where it lands on your week. Seat counts update every few seconds.</p>
+      <div id="courses"></div>
+    </section>
+
+    <section class="board" aria-labelledby="board-h">
+      <h2 id="board-h">Your week</h2>
+      <p class="hint">Each course meets in its slot's periods.</p>
+      <div class="grid" id="grid"></div>
+      <div class="taken">
+        <h2>Registered</h2>
+        <ul id="taken"></ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"];
+  const PERIODS = [1, 2, 3, 4];
+  const POLL_MS = 5000;
+  const RULE_TITLES = {
+    DUPLICATE: "Already registered",
+    SLOT_CLASH: "Timetable clash",
+    CREDIT_LIMIT: "Over your credit limit",
+    SEAT_CAP: "Course is full",
+    NOT_FOUND: "Not found"
+  };
+
+  const api = {
+    async get(path) {
+      const res = await fetch(path);
+      if (!res.ok) throw new Error(path + " returned " + res.status);
+      return res.json();
+    },
+    students() { return this.get("/students"); },
+    courses() { return this.get("/courses"); },
+    registrations(id) { return this.get(`/students/${id}/registrations`); },
+    timetable(id) { return this.get(`/students/${id}/timetable`); },
+    credits(id) { return this.get(`/students/${id}/credits`); },
+    async register(studentId, courseId) {
+      const res = await fetch("/registrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, courseId })
+      });
+      if (res.ok) return { ok: true };
+      let body = {};
+      try { body = await res.json(); } catch (e) { }
+      return { ok: false, rule: body.rule, reason: body.reason || "Request failed with status " + res.status };
+    },
+    async drop(registrationId) {
+      const res = await fetch(`/registrations/${registrationId}`, { method: "DELETE" });
+      return res.ok;
+    }
+  };
+
+  const $ = id => document.getElementById(id);
+  const colorOf = id => `var(--c${((id - 1) % 6) + 1})`;
+  const dayName = d => d[0] + d.slice(1).toLowerCase();
+  const pretty = s => s.replace(/MONDAY|TUESDAY|WEDNESDAY|THURSDAY|FRIDAY/, dayName);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  let students = [], courses = [], regs = [], timetable = [], credits = { used: 0, max: 0 };
+  let current = null, results = {}, hovered = null, lastSnapshot = "", flashCourse = null;
+
+  async function start() {
+    try {
+      students = await api.students();
+    } catch (e) {
+      $("offline").classList.add("show");
+      setTimeout(start, POLL_MS);
+      return;
+    }
+    $("offline").classList.remove("show");
+    if (!students.length) {
+      $("courses").innerHTML = `<p class="empty">No students yet. Add one with POST /students, then reload.</p>`;
+      return;
+    }
+    $("student").innerHTML = students.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join("");
+    $("student").onchange = () => { results = {}; refresh(true); };
+    await refresh(true);
+    setInterval(() => { if (!document.hidden) refresh(false); }, POLL_MS);
+  }
+
+  async function refresh(force) {
+    current = students.find(s => s.id === Number($("student").value));
+    try {
+      [courses, regs, timetable, credits] = await Promise.all([
+        api.courses(), api.registrations(current.id), api.timetable(current.id), api.credits(current.id)
+      ]);
+      $("offline").classList.remove("show");
+    } catch (e) {
+      $("offline").classList.add("show");
+      return;
+    }
+    const snapshot = JSON.stringify([current.id, courses, regs, timetable, credits, results]);
+    if (!force && snapshot === lastSnapshot) return;
+    lastSnapshot = snapshot;
+    drawHeader(); drawCourses(); drawGrid(); drawTaken();
+    if (hovered) peek(hovered);
+    flashCourse = null;
+  }
+
+  function drawHeader() {
+    $("regNo").textContent = current.regNo;
+    $("used").textContent = credits.used;
+    $("max").textContent = credits.max;
+    $("pips").innerHTML = Array.from({ length: credits.max },
+      (_, i) => `<span class="pip ${i < credits.used ? "on" : ""}"></span>`).join("");
+  }
+
+  function drawCourses() {
+    $("courses").innerHTML = courses.length ? courses.map(c => {
+      const res = results[c.id];
+      const seats = c.seatsLeft <= 0 ? `<span class="full">Full</span>` : `${c.seatsLeft} of ${c.capacity} seats left`;
+      return `<div class="course" data-id="${c.id}">
+        <div class="row">
+          <div class="slot" style="background:${colorOf(c.id)}">${esc(c.slot)}</div>
+          <div><div class="title">${esc(c.title)}</div><div class="meta">${esc(c.code)}, ${c.credits} credits, ${seats}</div></div>
+          <button class="btn" data-register="${c.id}">Register</button>
+        </div>
+        ${res ? `<div class="result ${res.ok ? "ok" : "bad"}" role="status"><strong>${esc(res.title)}</strong>${esc(res.text)}</div>` : ""}
+      </div>`;
+    }).join("") : `<p class="empty">No courses yet. Add one with POST /courses.</p>`;
+  }
+
+  function drawGrid() {
+    const byCode = Object.fromEntries(courses.map(c => [c.code, c]));
+    let html = `<div></div>` + PERIODS.map(p => `<div class="head">Period ${p}</div>`).join("");
+    for (const d of DAYS) {
+      html += `<div class="day">${dayName(d).slice(0, 3)}</div>`;
+      for (const p of PERIODS) {
+        const entry = timetable.find(t => t.day === d && t.period === p);
+        if (entry) {
+          const c = byCode[entry.courseCode];
+          const id = c ? c.id : 1;
+          const flash = c && flashCourse === c.id ? " flash" : "";
+          html += `<div class="cell busy${flash}" data-d="${d}" data-p="${p}" style="background:${colorOf(id)}"><strong>${esc(entry.courseCode)}</strong><span>${esc(entry.title)}</span></div>`;
+        } else {
+          html += `<div class="cell" data-d="${d}" data-p="${p}"></div>`;
+        }
+      }
+    }
+    $("grid").innerHTML = html;
+  }
+
+  function drawTaken() {
+    $("taken").innerHTML = regs.length ? regs.map(r => `<li>
+        <div class="slot" style="background:${colorOf(r.course.id)}">${esc(r.course.slot.code)}</div>
+        <div><div class="title">${esc(r.course.title)}</div><div class="meta">${esc(r.course.code)}, ${r.course.credits} credits</div></div>
+        <button class="btn quiet" data-drop="${r.id}" data-course="${r.course.id}">Drop</button>
+      </li>`).join("")
+      : `<li class="empty">Nothing yet. Pick a course on the left and register.</li>`;
+  }
+
+  function clearPeek() {
+    document.querySelectorAll(".cell.peek").forEach(el => el.classList.remove("peek", "clash"));
+  }
+
+  function peek(courseId) {
+    clearPeek();
+    const c = courses.find(x => x.id === courseId);
+    if (!c) return;
+    const alreadyMine = regs.some(r => r.course.id === c.id);
+    for (const t of c.timings) {
+      const el = document.querySelector(`.cell[data-d="${t.day}"][data-p="${t.period}"]`);
+      if (!el) continue;
+      el.classList.add("peek");
+      if (el.classList.contains("busy") && !alreadyMine) el.classList.add("clash");
+    }
+  }
+
+  const rowId = e => { const row = e.target.closest(".course"); return row ? Number(row.dataset.id) : null; };
+  $("courses").addEventListener("mouseover", e => { const id = rowId(e); if (id) { hovered = id; peek(id); } });
+  $("courses").addEventListener("mouseleave", () => { hovered = null; clearPeek(); });
+  $("courses").addEventListener("focusin", e => { const id = rowId(e); if (id) { hovered = id; peek(id); } });
+  $("courses").addEventListener("focusout", () => { hovered = null; clearPeek(); });
+
+  $("courses").addEventListener("click", async e => {
+    const id = Number(e.target.dataset.register);
+    if (!id) return;
+    e.target.disabled = true;
+    const c = courses.find(x => x.id === id);
+    const res = await api.register(current.id, id);
+    results = {};
+    results[id] = res.ok
+      ? { ok: true, title: "Registered", text: `${c.title} is on your timetable.` }
+      : { ok: false, title: RULE_TITLES[res.rule] || "Not registered", text: pretty(res.reason) + "." };
+    if (res.ok) flashCourse = id;
+    await refresh(true);
+    const btn = document.querySelector(`[data-register="${id}"]`);
+    if (btn) btn.focus();
+  });
+
+  $("taken").addEventListener("click", async e => {
+    const id = Number(e.target.dataset.drop);
+    if (!id) return;
+    e.target.disabled = true;
+    const cid = Number(e.target.dataset.course);
+    const c = courses.find(x => x.id === cid);
+    const ok = await api.drop(id);
+    results = ok
+      ? { [cid]: { ok: true, title: "Dropped", text: `${c.title} is off your timetable and its seat is free.` } }
+      : { [cid]: { ok: false, title: "Not dropped", text: "The server could not drop this course. Try again." } };
+    await refresh(true);
+  });
+
+  start();
+</script>
+</body>
+</html>

@@ -57,6 +57,11 @@ public class StudentController {
         return students.save(new Student(request.name(), request.regNo(), request.maxCredits()));
     }
 
+    @GetMapping
+    public List<Student> list() {
+        return students.findAll();
+    }
+
     @GetMapping("/{id}/registrations")
     public List<Registration> registrations(@PathVariable Long id) {
         return registrations.findByStudent(find(id));
